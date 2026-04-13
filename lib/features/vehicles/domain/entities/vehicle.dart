@@ -5,7 +5,7 @@ class Vehicle {
   final int year;
   final double price;
   final String description;
-  final String? imageUrl;
+  final String imagePath; // ahora es obligatorio
 
   Vehicle({
     this.id,
@@ -14,6 +14,6 @@ class Vehicle {
     required this.year,
     required this.price,
     required this.description,
-    this.imageUrl,
+    required this.imagePath,
   });
 }

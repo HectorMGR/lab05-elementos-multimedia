@@ -16,7 +16,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE vehicles (
@@ -26,9 +26,25 @@ class DatabaseService {
             year INTEGER NOT NULL,
             price REAL NOT NULL,
             description TEXT NOT NULL,
-            imageUrl TEXT
+            imagePath TEXT NOT NULL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('DROP TABLE IF EXISTS vehicles');
+          await db.execute('''
+            CREATE TABLE vehicles (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              brand TEXT NOT NULL,
+              model TEXT NOT NULL,
+              year INTEGER NOT NULL,
+              price REAL NOT NULL,
+              description TEXT NOT NULL,
+              imagePath TEXT NOT NULL
+            )
+          ''');
+        }
       },
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../domain/entities/vehicle.dart';
 import 'add_vehicle_page.dart';
@@ -31,18 +32,18 @@ class VehicleDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(
-                  Icons.directions_car,
-                  size: 64,
-                  color: Colors.deepPurple.shade400,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.file(
+                File(vehicle.imagePath),
+                width: double.infinity,
+                height: 220,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: double.infinity,
+                  height: 220,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.directions_car, size: 64),
                 ),
               ),
             ),
@@ -64,26 +65,6 @@ class VehicleDetailPage extends StatelessWidget {
               vehicle.description,
               style: const TextStyle(fontSize: 15, height: 1.5),
             ),
-            if (vehicle.imageUrl != null && vehicle.imageUrl!.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const Text(
-                'Imagen',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  vehicle.imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 150,
-                    color: Colors.grey.shade200,
-                    child: const Center(child: Text('No se pudo cargar')),
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -106,10 +87,7 @@ class VehicleDetailPage extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 16),
-            ),
+            child: Text(value, style: const TextStyle(fontSize: 16)),
           ),
         ],
       ),

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/vehicle.dart';
 
 class VehicleForm extends StatefulWidget {
@@ -22,7 +24,9 @@ class _VehicleFormState extends State<VehicleForm> {
   late final TextEditingController _yearController;
   late final TextEditingController _priceController;
   late final TextEditingController _descriptionController;
-  late final TextEditingController _imageUrlController;
+
+  String? _imagePath;
+  bool _imageError = false;
 
   @override
   void initState() {
@@ -38,9 +42,7 @@ class _VehicleFormState extends State<VehicleForm> {
     _descriptionController = TextEditingController(
       text: widget.vehicle?.description ?? '',
     );
-    _imageUrlController = TextEditingController(
-      text: widget.vehicle?.imageUrl ?? '',
-    );
+    _imagePath = widget.vehicle?.imagePath;
   }
 
   @override
@@ -50,12 +52,62 @@ class _VehicleFormState extends State<VehicleForm> {
     _yearController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    if (picked != null) {
+      setState(() {
+        _imagePath = picked.path;
+        _imageError = false;
+      });
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Cámara'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galería'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _submit() {
-    if (_formKey.currentState!.validate()) {
+    final formValid = _formKey.currentState!.validate();
+    final hasImage = _imagePath != null && _imagePath!.isNotEmpty;
+
+    setState(() {
+      _imageError = !hasImage;
+    });
+
+    if (formValid && hasImage) {
       final vehicle = Vehicle(
         id: widget.vehicle?.id,
         brand: _brandController.text.trim(),
@@ -63,9 +115,7 @@ class _VehicleFormState extends State<VehicleForm> {
         year: int.parse(_yearController.text.trim()),
         price: double.parse(_priceController.text.trim()),
         description: _descriptionController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty
-            ? null
-            : _imageUrlController.text.trim(),
+        imagePath: _imagePath!,
       );
       widget.onSubmit(vehicle);
     }
@@ -78,6 +128,61 @@ class _VehicleFormState extends State<VehicleForm> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Selector de imagen
+          GestureDetector(
+            onTap: _showImageSourceDialog,
+            child: Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _imageError ? Colors.red : Colors.grey.shade300,
+                  width: _imageError ? 2 : 1,
+                ),
+              ),
+              child: _imagePath != null && _imagePath!.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
+                      child: Image.file(
+                        File(_imagePath!),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo,
+                          size: 48,
+                          color: _imageError
+                              ? Colors.red
+                              : Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Toca para agregar imagen *',
+                          style: TextStyle(
+                            color: _imageError
+                                ? Colors.red
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+          if (_imageError)
+            const Padding(
+              padding: EdgeInsets.only(top: 8, left: 12),
+              child: Text(
+                'La imagen es obligatoria',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _brandController,
             decoration: const InputDecoration(
@@ -144,15 +249,6 @@ class _VehicleFormState extends State<VehicleForm> {
             validator: (v) => v == null || v.trim().isEmpty
                 ? 'Ingrese una descripción'
                 : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _imageUrlController,
-            decoration: const InputDecoration(
-              labelText: 'URL de imagen (opcional)',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.image),
-            ),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
