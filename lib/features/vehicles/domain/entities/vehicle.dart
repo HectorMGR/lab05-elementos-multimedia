@@ -5,7 +5,7 @@ class Vehicle {
   final int year;
   final double price;
   final String description;
-  final String imagePath; // ahora es obligatorio
+  final List<String> imagePaths; // lista de rutas
 
   Vehicle({
     this.id,
@@ -14,6 +14,6 @@ class Vehicle {
     required this.year,
     required this.price,
     required this.description,
-    required this.imagePath,
+    this.imagePaths = const [],
   });
 }

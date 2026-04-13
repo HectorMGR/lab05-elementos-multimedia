@@ -29,18 +29,15 @@ class VehicleCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.file(
-                  File(vehicle.imagePath),
-                  width: 70,
-                  height: 70,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 70,
-                    height: 70,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.directions_car, size: 32),
-                  ),
-                ),
+                child: vehicle.imagePaths.isNotEmpty
+                    ? Image.file(
+                        File(vehicle.imagePaths.first),
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholder(),
+                      )
+                    : _placeholder(),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -57,10 +54,7 @@ class VehicleCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Año: ${vehicle.year}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -74,6 +68,26 @@ class VehicleCard extends StatelessWidget {
                   ],
                 ),
               ),
+              // Badge con cantidad de fotos
+              if (vehicle.imagePaths.length > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.photo_library, size: 14, color: Colors.deepPurple.shade400),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${vehicle.imagePaths.length}',
+                        style: TextStyle(fontSize: 12, color: Colors.deepPurple.shade400),
+                      ),
+                    ],
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: onDelete,
@@ -82,6 +96,15 @@ class VehicleCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: 70,
+      height: 70,
+      color: Colors.grey.shade200,
+      child: const Icon(Icons.directions_car, size: 32),
     );
   }
 }

@@ -8,10 +8,11 @@ class VehicleModel extends Vehicle {
     required super.year,
     required super.price,
     required super.description,
-    required super.imagePath,
+    super.imagePaths = const [],
   });
 
-  factory VehicleModel.fromMap(Map<String, dynamic> map) {
+  factory VehicleModel.fromMap(Map<String, dynamic> map,
+      {List<String> imagePaths = const []}) {
     return VehicleModel(
       id: map['id'] as int?,
       brand: map['brand'] as String,
@@ -19,7 +20,7 @@ class VehicleModel extends Vehicle {
       year: map['year'] as int,
       price: (map['price'] as num).toDouble(),
       description: map['description'] as String,
-      imagePath: map['imagePath'] as String,
+      imagePaths: imagePaths,
     );
   }
 
@@ -31,7 +32,6 @@ class VehicleModel extends Vehicle {
       'year': year,
       'price': price,
       'description': description,
-      'imagePath': imagePath,
     };
   }
 
@@ -43,7 +43,7 @@ class VehicleModel extends Vehicle {
       year: vehicle.year,
       price: vehicle.price,
       description: vehicle.description,
-      imagePath: vehicle.imagePath,
+      imagePaths: vehicle.imagePaths,
     );
   }
 }

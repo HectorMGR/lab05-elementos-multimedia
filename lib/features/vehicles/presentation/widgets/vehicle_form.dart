@@ -25,7 +25,7 @@ class _VehicleFormState extends State<VehicleForm> {
   late final TextEditingController _priceController;
   late final TextEditingController _descriptionController;
 
-  String? _imagePath;
+  List<String> _imagePaths = [];
   bool _imageError = false;
 
   @override
@@ -42,7 +42,7 @@ class _VehicleFormState extends State<VehicleForm> {
     _descriptionController = TextEditingController(
       text: widget.vehicle?.description ?? '',
     );
-    _imagePath = widget.vehicle?.imagePath;
+    _imagePaths = List.from(widget.vehicle?.imagePaths ?? []);
   }
 
   @override
@@ -57,18 +57,41 @@ class _VehicleFormState extends State<VehicleForm> {
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: source,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 85,
-    );
-    if (picked != null) {
-      setState(() {
-        _imagePath = picked.path;
-        _imageError = false;
-      });
+
+    if (source == ImageSource.gallery) {
+      // Permitir selección múltiple desde galería
+      final picked = await picker.pickMultiImage(
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked.isNotEmpty) {
+        setState(() {
+          _imagePaths.addAll(picked.map((f) => f.path));
+          _imageError = false;
+        });
+      }
+    } else {
+      // Cámara: una foto a la vez
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        setState(() {
+          _imagePaths.add(picked.path);
+          _imageError = false;
+        });
+      }
     }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _imagePaths.removeAt(index);
+    });
   }
 
   void _showImageSourceDialog() {
@@ -87,7 +110,7 @@ class _VehicleFormState extends State<VehicleForm> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Galería'),
+              title: const Text('Galería (múltiples)'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(ImageSource.gallery);
@@ -101,13 +124,13 @@ class _VehicleFormState extends State<VehicleForm> {
 
   void _submit() {
     final formValid = _formKey.currentState!.validate();
-    final hasImage = _imagePath != null && _imagePath!.isNotEmpty;
+    final hasImages = _imagePaths.isNotEmpty;
 
     setState(() {
-      _imageError = !hasImage;
+      _imageError = !hasImages;
     });
 
-    if (formValid && hasImage) {
+    if (formValid && hasImages) {
       final vehicle = Vehicle(
         id: widget.vehicle?.id,
         brand: _brandController.text.trim(),
@@ -115,7 +138,7 @@ class _VehicleFormState extends State<VehicleForm> {
         year: int.parse(_yearController.text.trim()),
         price: double.parse(_priceController.text.trim()),
         description: _descriptionController.text.trim(),
-        imagePath: _imagePath!,
+        imagePaths: _imagePaths,
       );
       widget.onSubmit(vehicle);
     }
@@ -128,61 +151,83 @@ class _VehicleFormState extends State<VehicleForm> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Selector de imagen
-          GestureDetector(
-            onTap: _showImageSourceDialog,
-            child: Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _imageError ? Colors.red : Colors.grey.shade300,
-                  width: _imageError ? 2 : 1,
-                ),
-              ),
-              child: _imagePath != null && _imagePath!.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(11),
-                      child: Image.file(
-                        File(_imagePath!),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          // Galería de imágenes seleccionadas
+          if (_imagePaths.isNotEmpty)
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _imagePaths.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Stack(
                       children: [
-                        Icon(
-                          Icons.add_a_photo,
-                          size: 48,
-                          color: _imageError
-                              ? Colors.red
-                              : Colors.grey.shade400,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(_imagePaths[index]),
+                            width: 130,
+                            height: 130,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Toca para agregar imagen *',
-                          style: TextStyle(
-                            color: _imageError
-                                ? Colors.red
-                                : Colors.grey.shade600,
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeImage(index),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 12),
+
+          // Botón para agregar imágenes
+          OutlinedButton.icon(
+            onPressed: _showImageSourceDialog,
+            icon: const Icon(Icons.add_a_photo),
+            label: Text(
+              _imagePaths.isEmpty
+                  ? 'Agregar imágenes *'
+                  : 'Agregar más imágenes (${_imagePaths.length})',
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: BorderSide(
+                color: _imageError ? Colors.red : Colors.grey.shade400,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           if (_imageError)
             const Padding(
               padding: EdgeInsets.only(top: 8, left: 12),
               child: Text(
-                'La imagen es obligatoria',
+                'Debe agregar al menos una imagen',
                 style: TextStyle(color: Colors.red, fontSize: 12),
               ),
             ),
           const SizedBox(height: 16),
+
           TextFormField(
             controller: _brandController,
             decoration: const InputDecoration(
